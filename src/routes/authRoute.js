@@ -1,10 +1,35 @@
 import Router from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-
+import authMiddleware from "../middleware/authMiddleware.js";
 dotenv.config();
 
 const router = Router();
+
+router.get("/check-auth", authMiddleware, (req, res) => {
+  // If authMiddleware passes, we know the user is authenticated
+  const mockAdminUser = {
+    id: "admin",
+    email: "admin@beautifyinterior.com",
+    firstName: "Joydip",
+    lastName: "chakraborty",
+    role: "admin",
+    permissions: [
+      "products.read",
+      "products.write",
+      "orders.read",
+      "orders.write",
+      "customers.read",
+      "customers.write",
+    ],
+    isActive: true,
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-05-01T00:00:00Z",
+    lastLogin: new Date().toISOString(),
+  };
+
+  res.json({ isAuthenticated: true, user: mockAdminUser });
+});
 
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
