@@ -11,9 +11,10 @@ app.use(cookieParser());
 // Enable CORS for your frontend origin
 app.use(
   cors({
-    origin: "http://localhost:3000", // Allow requests from this origin
-    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
-    allowedHeaders: ["Content-Type"], // Allowed headers
+    origin: ["http://localhost:3000", "https://beautifyinterior.com"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
