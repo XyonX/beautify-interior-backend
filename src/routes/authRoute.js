@@ -53,7 +53,8 @@ router.post("/login", (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS in production
-      sameSite: "strict",
+      // sameSite: "strict",
+      sameSite: "none", // Allow cross-site requests
       maxAge: parseInt(process.env.SESSION_EXPIRY),
     });
 
