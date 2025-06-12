@@ -11,7 +11,7 @@ router.post("/login", (req, res) => {
 
   if (!username || !password) {
     res.status(400).send({
-      error: "username or password not available",
+      error: "Username and password required",
     });
   }
   if (
@@ -32,7 +32,27 @@ router.post("/login", (req, res) => {
       maxAge: parseInt(process.env.SESSION_EXPIRY),
     });
 
-    return res.json({ message: "Login successful" });
+    const mockAdminUser = {
+      id: "admin",
+      email: "admin@beautifyinterior.com",
+      firstName: "Joydip",
+      lastName: "chakraborty",
+      role: "admin",
+      permissions: [
+        "products.read",
+        "products.write",
+        "orders.read",
+        "orders.write",
+        "customers.read",
+        "customers.write",
+      ],
+      isActive: true,
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-05-01T00:00:00Z",
+      lastLogin: new Date().toISOString(), // Dynamic last login
+    };
+
+    return res.json({ message: "Login successful", user: mockAdminUser });
   }
 
   res.status(401).json({ error: "Invalid credentials" });
