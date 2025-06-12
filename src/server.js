@@ -3,10 +3,11 @@ import cors from "cors";
 import pool from "../config/database.js";
 import categoryRoute from "./routes/categoryRoutes.js";
 import productRoute from "./routes/productRoutes.js";
-
+import authRoutes from "./routes/authRoute.js";
+import cookieParser from "cookie-parser";
 const app = express();
 app.use(express.json());
-
+app.use(cookieParser());
 // Enable CORS for your frontend origin
 app.use(
   cors({
@@ -15,6 +16,9 @@ app.use(
     allowedHeaders: ["Content-Type"], // Allowed headers
   })
 );
+
+// Routes
+app.use("/auth", authRoutes);
 
 app.use("/api", categoryRoute);
 app.use("/api", productRoute);
