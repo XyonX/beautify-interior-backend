@@ -49,7 +49,7 @@ router.post("/login", (req, res) => {
       isActive: true,
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-05-01T00:00:00Z",
-      lastLogin: new Date().toISOString(), // Dynamic last login
+      lastLogin: new Date().toISOString(),
     };
 
     return res.json({ message: "Login successful", user: mockAdminUser });
