@@ -216,9 +216,38 @@ const Product = {
     return rows.length > 0;
   },
   findProductById: async (id) => {
-    const query = `SELECT * FROM PRODUCTS WHERE id = $1`;
+    // First query: Fetch product with category
+    const query = `
+      SELECT (row_to_json(p)::jsonb - 'category_id') || jsonb_build_object('category', row_to_json(c)) AS product_with_category
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      WHERE p.id = $1;
+    `;
+
     const { rows } = await pool.query(query, [id]);
-    return rows[0];
+    if (rows.length === 0) {
+      throw new Error("Product not found");
+    }
+    const product = rows[0]; // { product_with_category: { id, name, category, ... } }
+    const productData = product.product_with_category; // { id, name, category, ... }
+    const productId = productData.id; // The product ID
+
+    // Second query: Fetch product images
+    const query1 = `
+      SELECT * FROM product_images WHERE product_id = $1;
+    `;
+    const { rows: images } = await pool.query(query1, [productId]);
+
+    // Process images
+    const thumbnail = images.filter((image) => image.is_main); // Array of main images
+    const detailedImages = images; // All images
+
+    // Construct the return object
+    return {
+      ...productData,
+      thumbnail: thumbnail[0],
+      detailedImages,
+    };
   },
 };
 
