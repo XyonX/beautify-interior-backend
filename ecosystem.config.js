@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: "express-backend",
+      name: "ourshop-backend",
       script: "./src/server.js",
       instances: 1,
       autorestart: true,
