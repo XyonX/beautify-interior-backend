@@ -215,6 +215,11 @@ const Product = {
     const { rows } = await pool.query(query, [slug]);
     return rows.length > 0;
   },
+  findProductById: async (id) => {
+    const query = `SELECT * FROM PRODUCTS WHERE id = $1`;
+    const { rows } = await pool.query(query, [id]);
+    return rows[0];
+  },
 };
 
 export default Product;

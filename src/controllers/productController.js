@@ -41,3 +41,19 @@ export const getProducts = async (req, res) => {
     });
   }
 };
+
+export const getProductById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findProductById(id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch product :" + error.message });
+  }
+};

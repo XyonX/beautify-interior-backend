@@ -6,6 +6,7 @@ import {
 import {
   createProduct,
   getProducts,
+  getProductById,
 } from "../controllers/productController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -20,5 +21,6 @@ route.post(
 );
 
 route.get("/products", getProducts);
+route.get("/products/:id", getProductById);
 
 export default route;
