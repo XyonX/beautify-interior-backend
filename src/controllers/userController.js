@@ -109,13 +109,25 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Create JWT token
+    // // Create JWT token
+    // const token = jwt.sign(
+    //   { email: user.email, id: user.id },
+    //   process.env.JWT_SECRET,
+    //   {
+    //     expiresIn: "1d",
+    //   }
+    // );
     const token = jwt.sign(
-      { email: user.email, id: user.id },
-      process.env.JWT_SECRET,
       {
-        expiresIn: "1d",
-      }
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        status: user.status,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
     );
 
     // Set HTTP-only cookie
