@@ -2,6 +2,7 @@ import Router from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import authMiddleware from "../middleware/authMiddleware.js";
+import { verifyEmail } from "../controllers/authController.js";
 dotenv.config();
 
 const router = Router();
@@ -30,6 +31,9 @@ router.get("/check-auth", authMiddleware, (req, res) => {
 
   res.json({ isAuthenticated: true, user: mockAdminUser });
 });
+
+// GET /api/auth/verify-email
+router.get("/verify-email", verifyEmail);
 
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
