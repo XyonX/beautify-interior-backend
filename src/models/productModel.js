@@ -44,17 +44,19 @@ const Product = {
   getProducts: async (options = {}) => {
     let query = `
       SELECT 
-        id, name, slug, description, short_description AS "shortDescription", 
-        sku, barcode, price, compare_at_price AS "compareAtPrice", 
-        cost_price AS "costPrice", track_quantity AS "trackQuantity", 
-        quantity, low_stock_threshold AS "lowStockThreshold", weight, 
-        dimensions, status, visibility, category_id AS "categoryId", 
-        tags, seo_title AS "seoTitle", seo_description AS "seoDescription", 
-        vendor, is_featured AS "isFeatured", is_new AS "isNew", 
-        on_sale AS "onSale", sales_count AS "salesCount", view_count AS "viewCount",
-        average_rating AS "averageRating", review_count AS "reviewCount",
-        created_at AS "createdAt", updated_at AS "updatedAt"
-      FROM products
+        p.id, p.name, p.slug, p.description, p.short_description AS "shortDescription", 
+        p.sku, p.barcode, p.price, p.compare_at_price AS "compareAtPrice", 
+        p.cost_price AS "costPrice", p.track_quantity AS "trackQuantity", 
+        p.quantity, p.low_stock_threshold AS "lowStockThreshold", p.weight, 
+        p.dimensions, p.status, p.visibility, 
+        json_build_object('id', c.id, 'name', c.name, 'slug', c.slug) AS category,
+        p.tags, p.seo_title AS "seoTitle", p.seo_description AS "seoDescription", 
+        p.vendor, p.is_featured AS "isFeatured", p.is_new AS "isNew", 
+        p.on_sale AS "onSale", p.sales_count AS "salesCount", p.view_count AS "viewCount",
+        p.average_rating AS "averageRating", p.review_count AS "reviewCount",
+        p.created_at AS "createdAt", p.updated_at AS "updatedAt"
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
       WHERE 1=1
     `;
 
@@ -73,51 +75,51 @@ const Product = {
 
     // Apply filters
     if (options.categoryId) {
-      conditions.push(`category_id = $${values.length + 1}`);
+      conditions.push(`p.category_id = $${values.length + 1}`);
       values.push(options.categoryId);
     }
 
     if (options.status) {
-      conditions.push(`status = $${values.length + 1}`);
+      conditions.push(`p.status = $${values.length + 1}`);
       values.push(options.status);
     }
 
     if (options.visibility) {
-      conditions.push(`visibility = $${values.length + 1}`);
+      conditions.push(`p.visibility = $${values.length + 1}`);
       values.push(options.visibility);
     }
 
     if (options.isFeatured !== undefined) {
-      conditions.push(`is_featured = $${values.length + 1}`);
+      conditions.push(`p.is_featured = $${values.length + 1}`);
       values.push(options.isFeatured);
     }
 
     if (options.isNew !== undefined) {
-      conditions.push(`is_new = $${values.length + 1}`);
+      conditions.push(`p.is_new = $${values.length + 1}`);
       values.push(options.isNew);
     }
 
     if (options.onSale !== undefined) {
-      conditions.push(`on_sale = $${values.length + 1}`);
+      conditions.push(`p.on_sale = $${values.length + 1}`);
       values.push(options.onSale);
     }
 
     if (options.minQuantity !== undefined) {
-      conditions.push(`quantity >= $${values.length + 1}`);
+      conditions.push(`p.quantity >= $${values.length + 1}`);
       values.push(options.minQuantity);
     }
 
     if (options.maxQuantity !== undefined) {
-      conditions.push(`quantity <= $${values.length + 1}`);
+      conditions.push(`p.quantity <= $${values.length + 1}`);
       values.push(options.maxQuantity);
     }
 
     if (options.searchTerm) {
       const searchTerm = `%${options.searchTerm}%`;
       conditions.push(`
-        (name ILIKE $${values.length + 1} OR 
-        description ILIKE $${values.length + 1} OR 
-        tags::text ILIKE $${values.length + 1})
+        (p.name ILIKE $${values.length + 1} OR 
+        p.description ILIKE $${values.length + 1} OR 
+        p.tags::text ILIKE $${values.length + 1})
       `);
       values.push(searchTerm);
     }
@@ -139,9 +141,9 @@ const Product = {
         ? options.sortOrder.toUpperCase()
         : "DESC";
 
-      query += ` ORDER BY ${sortField} ${sortOrder}`;
+      query += ` ORDER BY p.${sortField} ${sortOrder}`;
     } else {
-      query += ` ORDER BY created_at DESC`;
+      query += ` ORDER BY p.created_at DESC`;
     }
 
     // Apply pagination
@@ -150,9 +152,9 @@ const Product = {
     const offset = (page - 1) * limit;
 
     query += `
-    LIMIT $${values.length + 1}
-    OFFSET $${values.length + 2}
-  `;
+      LIMIT $${values.length + 1}
+      OFFSET $${values.length + 2}
+    `;
     values.push(limit, offset);
 
     // Execute product query
@@ -166,16 +168,16 @@ const Product = {
 
     // Fetch images for these products
     const imageQuery = `
-    SELECT 
-      product_id AS "productId", 
-      url, 
-      alt_text AS "altText",
-      is_main AS "isMain",
-      sort_order AS "sortOrder"
-    FROM product_images
-    WHERE product_id = ANY($1)
-    ORDER BY product_id, is_main DESC, sort_order ASC
-  `;
+      SELECT 
+        product_id AS "productId", 
+        url, 
+        alt_text AS "altText",
+        is_main AS "isMain",
+        sort_order AS "sortOrder"
+      FROM product_images
+      WHERE product_id = ANY($1)
+      ORDER BY product_id, is_main DESC, sort_order ASC
+    `;
     const { rows: images } = await pool.query(imageQuery, [productIds]);
 
     // Group images by product ID
@@ -190,19 +192,11 @@ const Product = {
     // Attach images to products
     return products.map((product) => {
       const productImages = imagesByProduct[product.id] || [];
-
-      console.log("product images:  ", productImages);
-
-      // Find thumbnail (main image)
       const thumbnail = productImages.find((img) => img.isMain)?.url || null;
-
-      // Get detailed images (non-main, max 5)
       const detailedImages = productImages
         .filter((img) => !img.is_main)
         .slice(0, 5)
         .map((img) => img.url);
-
-      console.log("Detailed iimages ", detailedImages);
       return {
         ...product,
         thumbnail,

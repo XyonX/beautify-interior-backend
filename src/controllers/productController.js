@@ -1,6 +1,7 @@
 import productService from "../services/productService.js";
 import imageService from "../services/imageService.js";
 import Product from "../models/productModel.js";
+
 export const createProduct = async (req, res) => {
   const requiredFields = [
     "name",
@@ -56,4 +57,8 @@ export const getProductById = async (req, res) => {
       .status(500)
       .json({ error: "Failed to fetch product :" + error.message });
   }
+};
+
+export const updateProduct = async (req, res) => {
+  const { id } = req.params;
 };
