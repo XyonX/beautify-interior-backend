@@ -18,7 +18,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
 
     // Email content
     const mailOptions = {
-      from: `"Your E-commerce" <${process.env.EMAIL_FROM}>`,
+      from: `"Beautify Interior" <${process.env.EMAIL_FROM}>`,
       to: email,
       subject: "Email Verification",
       html: `
