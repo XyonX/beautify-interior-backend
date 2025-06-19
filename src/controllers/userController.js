@@ -140,7 +140,7 @@ export const loginUser = async (req, res) => {
     // });
 
     const isProduction = process.env.NODE_ENV === "production";
-
+    console.log("is production :", isProduction);
     // Cookie options
     const cookieOptions = {
       httpOnly: true,
@@ -148,6 +148,7 @@ export const loginUser = async (req, res) => {
       sameSite: isProduction ? "None" : "Lax", // Lax in dev
       maxAge: parseInt(process.env.USER_SESSION_EXPIRY),
     };
+    console.log("cookie options ", cookieOptions);
 
     // Set domain to "localhost" in development only
     if (!isProduction) {

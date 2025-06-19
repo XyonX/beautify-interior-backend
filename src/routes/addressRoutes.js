@@ -6,7 +6,7 @@ import pool from "../../config/database.js"; //USE THIS instead of db
 const router = Router();
 
 // Add a new address
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", async (req, res) => {
   const user_id = req.user.id;
   const { street, city, state, zip, country, type, is_default } = req.body;
 
