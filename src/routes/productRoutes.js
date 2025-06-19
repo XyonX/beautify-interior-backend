@@ -1,3 +1,4 @@
+//prodcutRoutes.js
 import { Router } from "express";
 import {
   uploadProductImages,

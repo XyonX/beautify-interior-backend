@@ -6,6 +6,11 @@ import productRoute from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoute.js";
 import cookieParser from "cookie-parser";
 import userRoute from "./routes/userRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import shipmentRoutes from "./routes/shipmentRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
 
 const app = express();
 app.use(express.json());
@@ -30,6 +35,12 @@ app.use("/auth", authRoutes);
 app.use("/api", categoryRoute);
 app.use("/api", productRoute);
 app.use("/api/users", userRoute);
+
+// app.use("/api", cartRoutes);
+// app.use("/api", orderRoutes);
+// app.use("/api", paymentRoutes);
+// app.use("/api", shipmentRoutes);
+app.use("/api/addresses", addressRoutes);
 
 const PORT = 3001 || process.env.PORT;
 app.listen(3001, () => {

@@ -130,14 +130,32 @@ export const loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // Set HTTP-only cookie
-    res.cookie("authToken", token, {
+    // // Set HTTP-only cookie
+    // res.cookie("authToken", token, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production", // HTTPS in production
+    //   // sameSite: "strict",
+    //   sameSite: "none", // Allow cross-site requests
+    //   maxAge: parseInt(process.env.USER_SESSION_EXPIRY),
+    // });
+
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // Cookie options
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS in production
-      // sameSite: "strict",
-      sameSite: "none", // Allow cross-site requests
+      secure: isProduction, // false in dev
+      sameSite: isProduction ? "None" : "Lax", // Lax in dev
       maxAge: parseInt(process.env.USER_SESSION_EXPIRY),
-    });
+    };
+
+    // Set domain to "localhost" in development only
+    if (!isProduction) {
+      cookieOptions.domain = "localhost";
+    }
+
+    res.cookie("authToken", token, cookieOptions);
+    console.log("Attached cookie with login res: ", res.cookie);
 
     const userDetails = {
       id: user.id,

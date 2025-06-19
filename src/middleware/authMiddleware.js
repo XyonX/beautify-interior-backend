@@ -6,6 +6,8 @@ dotenv.config();
 const authMiddleware = (req, res, next) => {
   // Safely access cookies (handles undefined req.cookies)
   const token = req.cookies?.authToken;
+  console.log("received cookies:", req.cookies);
+  console.log("Receiverd token: ", token);
 
   if (!token) {
     return res.status(401).json({ error: "Unauthorized - No token provided" });
