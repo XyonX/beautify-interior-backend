@@ -179,13 +179,20 @@ export const loginUser = async (req, res) => {
     const isProduction = process.env.NODE_ENV === "production";
     console.log(`Environment is production: ${isProduction}`);
 
-    // Cookie options
+    // In login endpoint:
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction, // false in dev
-      sameSite: isProduction ? "None" : "Lax", // Lax in dev
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
       maxAge: parseInt(process.env.USER_SESSION_EXPIRY),
     };
+
+    // Add domain configuration for production
+    if (isProduction) {
+      cookieOptions.domain = ".beautifyinterior.com"; // Note leading dot
+    } else {
+      cookieOptions.domain = "localhost";
+    }
     console.log("Cookie options set:", cookieOptions);
 
     // Set domain to "localhost" in development only

@@ -36,6 +36,7 @@ app.use(
       "https://www.beautifyinterior.com",
     ],
     credentials: true,
+    exposedHeaders: ["set-cookie"], // for http cookie on prod
   })
 );
 
