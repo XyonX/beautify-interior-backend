@@ -8,14 +8,14 @@ import {
   uploadCategoryThumbnail,
   uploadCategoryThumbnailToR2,
 } from "../middleware/imageMiddleware.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authAdmin from "../middleware/authAdmin.js";
 
 const route = new Router();
 
 route.get("/categories", getCategories);
 route.post(
   "/categories",
-  authMiddleware,
+  authAdmin,
   uploadCategoryThumbnail,
   uploadCategoryThumbnailToR2,
   createCategory

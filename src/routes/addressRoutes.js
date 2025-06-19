@@ -1,12 +1,12 @@
 import Router from "express";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authUser from "../middleware/authUser.js";
 // const db = require("../db"); // Your database connection
 import pool from "../../config/database.js"; //USE THIS instead of db
 
 const router = Router();
 
 // Add a new address
-router.post("/", async (req, res) => {
+router.post("/", authUser, async (req, res) => {
   const user_id = req.user.id;
   const { street, city, state, zip, country, type, is_default } = req.body;
 
@@ -84,7 +84,7 @@ router.post("/", async (req, res) => {
 });
 
 // Get all addresses for a user
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/",  authUser, async (req, res) => {
   const user_id = req.user.id;
 
   try {
@@ -109,7 +109,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // Update an address
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id",  authUser, async (req, res) => {
   const user_id = req.user.id;
   const address_id = req.params.id;
   const { street, city, state, zip, country, type, isDefault } = req.body;

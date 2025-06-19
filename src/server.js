@@ -5,7 +5,6 @@ import categoryRoute from "./routes/categoryRoutes.js";
 import productRoute from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoute.js";
 import cookieParser from "cookie-parser";
-import userRoute from "./routes/userRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -45,7 +44,6 @@ app.use("/auth", authRoutes);
 
 app.use("/api", categoryRoute);
 app.use("/api", productRoute);
-app.use("/api/users", userRoute);
 
 // app.use("/api", cartRoutes);
 // app.use("/api", orderRoutes);

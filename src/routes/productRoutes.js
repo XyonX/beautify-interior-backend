@@ -9,13 +9,13 @@ import {
   getProducts,
   getProductById,
 } from "../controllers/productController.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authAdmin from "../middleware/authAdmin.js";
 
 const route = Router();
 
 route.post(
   "/products",
-  authMiddleware,
+  authAdmin,
   uploadProductImages,
   uploadProductImagesToR2,
   createProduct

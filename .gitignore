@@ -53,3 +53,4 @@ coverage/
 *.pid.lock
 
 /config/flyway.conf
+gen.js

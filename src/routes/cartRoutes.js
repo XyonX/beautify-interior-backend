@@ -1,11 +1,11 @@
 import { Router } from "express";
 import pool from "../../config/database.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authUser from "../middleware/authUser.js";
 
 const router = Router();
 
 // Get cart
-router.get("/cart", authMiddleware, async (req, res) => {
+router.get("/cart", authUser, async (req, res) => {
   const user_id = req.user ? req.user.id : null;
   const session_id = req.cookies.sessionId;
 
@@ -24,7 +24,7 @@ router.get("/cart", authMiddleware, async (req, res) => {
 });
 
 // Update quantity
-router.put("/cart/update", authMiddleware, async (req, res) => {
+router.put("/cart/update", authUser, async (req, res) => {
   const { cart_item_id, quantity } = req.body;
   try {
     const result = await pool.query(
@@ -38,7 +38,7 @@ router.put("/cart/update", authMiddleware, async (req, res) => {
 });
 
 // Remove item
-router.delete("/cart/remove", authMiddleware, async (req, res) => {
+router.delete("/cart/remove", authUser, async (req, res) => {
   const { cart_item_id } = req.body;
   try {
     await pool.query(`DELETE FROM cart_items WHERE id = $1`, [cart_item_id]);

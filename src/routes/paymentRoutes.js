@@ -1,12 +1,12 @@
 import { Router } from "express";
 import Stripe from "stripe";
 import pool from "../../config/database.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authUser from "../middleware/authUser.js";
 
 // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const router = Router();
 
-router.post("/payments/initiate", authMiddleware, async (req, res) => {
+router.post("/payments/initiate", authUser, async (req, res) => {
   // const { order_id } = req.body;
   // const order = await pool.query(`SELECT * FROM orders WHERE id = $1`, [
   //   order_id,

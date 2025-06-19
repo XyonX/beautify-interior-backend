@@ -1,10 +1,10 @@
 import { Router } from "express";
 import pool from "../../config/database.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authUser from "../middleware/authUser.js";
 
 const router = Router();
 
-router.post("/shipments", authMiddleware, async (req, res) => {
+router.post("/shipments", authUser, async (req, res) => {
   const { order_id, tracking_number, carrier } = req.body;
 
   try {
