@@ -1,43 +1,37 @@
 export const addToCart = async (req, res) => {
-  const { product_id, variant_id, quantity } = req.body;
-  const user_id = req.user?.id; // From auth middleware
-  const session_id = req.cookies.session_id || crypto.randomUUID();
+  const { product_id, quantity } = req.body;
+  const user_id = req.user.id;
 
   try {
-    // Check stock
-    // const stockQuery = variant_id
-    //   ? "SELECT quantity FROM product_variants WHERE id = $1"
-    //   : "SELECT quantity FROM products WHERE id = $1";
-
-    const stockQuery = "SELECT quantity FROM products WHERE id = $1";
-    const stockResult = await pool.query(stockQuery, [product_id]);
+    // 1. Check stock
+    const stockResult = await pool.query(
+      "SELECT quantity FROM products WHERE id = $1",
+      [product_id]
+    );
     const availableStock = stockResult.rows[0]?.quantity || 0;
 
     if (availableStock < quantity) {
       return res.status(400).json({ error: "Insufficient stock" });
     }
 
-    // Upsert cart item
+    // 2. Upsert into cart_items
     const upsertQuery = `
-   INSERT INTO cart_items (user_id, session_id, product_id, variant_id, quantity)
-   VALUES ($1, $2, $3, $4, $5)
-   ON CONFLICT (user_id, product_id, variant_id)
-   DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = NOW()
-   RETURNING *;
- `;
-    const values = [
-      user_id,
-      user_id ? null : session_id,
-      product_id,
-      variant_id,
-      quantity,
-    ];
+      INSERT INTO cart_items (user_id, product_id, quantity)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, product_id)
+      DO UPDATE SET 
+        quantity = cart_items.quantity + EXCLUDED.quantity,
+        updated_at = NOW()
+      RETURNING *;
+    `;
+
+    const values = [user_id, product_id, quantity];
     const result = await pool.query(upsertQuery, values);
 
-    if (!user_id) res.cookie("session_id", session_id, { httpOnly: true });
+    // 3. Return the result
     res.json(result.rows[0]);
   } catch (error) {
-    console.error(error);
+    console.error("Add to cart error:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -50,7 +44,16 @@ export const getCartByUser = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const query = `SELECT * FROM cart_items WHERE user_id = $1`;
+    const query = `SELECT 
+    cart_items.id AS cart_item_id,
+    cart_items.product_id,
+    cart_items.quantity,
+    products.name,
+    products.image,
+    products.price
+  FROM cart_items
+  JOIN products ON cart_items.product_id = products.id
+  WHERE cart_items.user_id = $1;`;
     const { rows } = await pool.query(query, [userId]);
     res.status(200).json(rows);
   } catch (error) {
@@ -88,25 +91,15 @@ export const updateCartItem = async (req, res) => {
 
     // Check stock availability
     let stock;
-    if (cartItem.variant_id) {
-      const variantRes = await pool.query(
-        "SELECT quantity FROM product_variants WHERE id = $1",
-        [cartItem.variant_id]
-      );
-      if (variantRes.rows.length === 0) {
-        return res.status(404).json({ error: "Variant not found" });
-      }
-      stock = variantRes.rows[0].quantity;
-    } else {
-      const productRes = await pool.query(
-        "SELECT quantity FROM products WHERE id = $1",
-        [cartItem.product_id]
-      );
-      if (productRes.rows.length === 0) {
-        return res.status(404).json({ error: "Product not found" });
-      }
-      stock = productRes.rows[0].quantity;
+    const productRes = await pool.query(
+      "SELECT quantity FROM products WHERE id = $1",
+      [cartItem.product_id]
+    );
+    if (productRes.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
     }
+    stock = productRes.rows[0].quantity;
+
     if (quantity > stock) {
       return res.status(400).json({ error: "Insufficient stock" });
     }
