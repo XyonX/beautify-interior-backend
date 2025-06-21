@@ -140,3 +140,48 @@ export const updateProduct = async (req, res) => {
     return res.status(400).json({ error: "No valid fields to update." });
   }
 };
+
+export const getSimilarProducts = async (req, res) => {
+  const { id } = req.params;
+  const limit = parseInt(req.query.limit) || 5;
+
+  try {
+    const product = await Product.findProductById(id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const originalTags = product.tags || [];
+    const categoryId = product.category_id;
+
+    const similarProducts = await Product.findAll({
+      where: {
+        category_id: categoryId,
+        id: { [Op.ne]: id },
+        status: "active",
+        visibility: "visible",
+      },
+      limit: 100,
+    });
+
+    const scoredProducts = similarProducts.map((p) => {
+      const commonTags = p.tags
+        ? p.tags.filter((tag) => originalTags.includes(tag)).length
+        : 0;
+      return { product: p, similarity: commonTags };
+    });
+
+    scoredProducts.sort(
+      (a, b) =>
+        b.similarity - a.similarity || a.product.id.localeCompare(b.product.id)
+    );
+
+    const topSimilar = scoredProducts.slice(0, limit).map((sp) => sp.product);
+
+    res.status(200).json(topSimilar);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch similar products: " + error.message });
+  }
+};

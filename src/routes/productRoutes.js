@@ -8,6 +8,7 @@ import {
   createProduct,
   getProducts,
   getProductById,
+  getSimilarProducts,
 } from "../controllers/productController.js";
 import authAdmin from "../middleware/authAdmin.js";
 
@@ -23,5 +24,8 @@ route.post(
 
 route.get("/products", getProducts);
 route.get("/products/:id", getProductById);
+
+// New route for similar products
+route.get("/products/:id/similar", getSimilarProducts);
 
 export default route;
