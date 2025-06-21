@@ -161,6 +161,31 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
+    // NEW: Fetch user addresses
+    console.log(`Fetching addresses for user ID: ${user.id}`);
+    const addressQuery = await pool.query(
+      `SELECT 
+        id,
+        type,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        company,
+        address,
+        address2,
+        city,
+        state,
+        zip_code AS "zipCode",
+        country,
+        phone,
+        is_default AS "isDefault"
+       FROM addresses 
+       WHERE user_id = $1`,
+      [user.id]
+    );
+
+    const addresses = addressQuery.rows;
+    console.log(`Found ${addresses.length} addresses for user`);
+
     // Create JWT token
     console.log("Password matched - generating JWT token");
     const token = jwt.sign(
@@ -179,7 +204,6 @@ export const loginUser = async (req, res) => {
     const isProduction = process.env.NODE_ENV === "production";
     console.log(`Environment is production: ${isProduction}`);
 
-    // In login endpoint:
     const cookieOptions = {
       httpOnly: true,
       secure: isProduction,
@@ -187,19 +211,9 @@ export const loginUser = async (req, res) => {
       maxAge: parseInt(process.env.USER_SESSION_EXPIRY),
     };
 
-    // Add domain configuration for production
-    if (isProduction) {
-      cookieOptions.domain = ".beautifyinterior.com"; // Note leading dot
-    } else {
-      cookieOptions.domain = "localhost";
-    }
+    // Domain configuration
+    cookieOptions.domain = isProduction ? ".beautifyinterior.com" : "localhost";
     console.log("Cookie options set:", cookieOptions);
-
-    // Set domain to "localhost" in development only
-    if (!isProduction) {
-      cookieOptions.domain = "localhost";
-      console.log("Development environment - setting domain to localhost");
-    }
 
     res.cookie("authToken", token, cookieOptions);
     console.log("Auth token cookie set successfully");
@@ -210,6 +224,22 @@ export const loginUser = async (req, res) => {
       role: user.role,
       firstName: user.first_name,
       lastName: user.last_name,
+      // NEW: Add addresses to user object
+      addresses: addresses.map((addr) => ({
+        id: addr.id,
+        type: addr.type,
+        firstName: addr.firstName,
+        lastName: addr.lastName,
+        company: addr.company,
+        address: addr.address,
+        address2: addr.address2,
+        city: addr.city,
+        state: addr.state,
+        zipCode: addr.zipCode,
+        country: addr.country,
+        phone: addr.phone,
+        isDefault: addr.isDefault,
+      })),
     };
 
     console.log(`Login successful for user: ${user.email} (ID: ${user.id})`);

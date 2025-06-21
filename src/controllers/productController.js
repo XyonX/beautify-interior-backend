@@ -102,4 +102,41 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
+  const updates = req.body;
+
+  if (!id || Object.keys(updades).length === 0) {
+    return res.status(400).json({ error: "Missing ID Or no fields " });
+  }
+
+  const allowerFields = [
+    "name",
+    "description",
+    "short_Description",
+    "price",
+    "compare_at_price",
+    "quantity",
+    "weight",
+    "dimensions",
+    "visibility",
+    "category_id",
+    "tags",
+    "seo_title",
+    "seo_description",
+    "vendor",
+    "is_featured",
+    "is_new",
+    "on_sale",
+    "sales_count",
+    "view_count",
+    "average_rating",
+    "review_count",
+  ];
+
+  const fields = updates.filter((field) => {
+    allowerFields.includes(field);
+  });
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: "No valid fields to update." });
+  }
 };

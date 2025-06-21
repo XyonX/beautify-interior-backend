@@ -7,66 +7,86 @@ const router = Router();
 
 // Add a new address
 router.post("/", authUser, async (req, res) => {
+  console.log("POST /addresses - incoming request");
+
   const user_id = req.user.id;
-  const { street, city, state, zip, country, type, is_default } = req.body;
+  // const { street, city, state, zip, country, type, is_default } = req.body;
+  const {
+    type,
+    firstName,
+    lastName,
+    company,
+    address,
+    city,
+    state,
+    zipCode,
+    country,
+    phone,
+    isDefault,
+  } = req.body;
+
+  console.log("Request body:", req.body);
+  console.log("Authenticated user ID:", user_id);
 
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
+    console.log("Transaction started");
 
-    // Unset other defaults if needed
-    if (is_default) {
+    if (isDefault) {
+      console.log(
+        "Setting this address as default. Unsetting previous defaults..."
+      );
       await client.query(
         "UPDATE addresses SET is_default = false WHERE user_id = $1",
         [user_id]
       );
     }
 
-    // Insert new address and return it
     const insertResult = await client.query(
       `INSERT INTO addresses 
-        (user_id, street, city, state, zip, country, type, is_default)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (user_id, type,first_name,last_name,company,address,city,state ,zip_code,country,phone, is_default)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11,$12)
        RETURNING id`,
       [
         user_id,
-        street,
+        type || "shipping",
+        firstName,
+        lastName,
+        company || "personal",
+        address,
         city,
         state,
-        zip,
+        zipCode,
         country,
-        type || "shipping",
-        is_default || false,
+        phone,
+        isDefault || false,
       ]
     );
 
     const newAddressId = insertResult.rows[0].id;
+    console.log("Inserted address with ID:", newAddressId);
 
-    // Fetch the full inserted address
     const addressResult = await client.query(
       `SELECT 
-        id, 
-        street, 
-        city, 
-        state, 
-        zip, 
-        country, 
-        type,
-        is_default AS "isDefault"
+      type,first_name As firstName,last_name AS lastName ,company,address,city,state ,zip_code,country,phone, is_default AS "isDefault"
       FROM addresses 
       WHERE id = $1`,
       [newAddressId]
     );
 
     await client.query("COMMIT");
+    console.log("Transaction committed");
 
     if (!addressResult.rows.length) {
+      console.error("No address returned after insert");
       return res
         .status(500)
         .json({ error: "Failed to retrieve created address" });
     }
 
+    console.log("Returning created address:", addressResult.rows[0]);
     res.status(201).json(addressResult.rows[0]);
   } catch (error) {
     await client.query("ROLLBACK");
@@ -80,24 +100,18 @@ router.post("/", authUser, async (req, res) => {
     res.status(500).json({ error: errorMessage });
   } finally {
     client.release();
+    console.log("DB client released");
   }
 });
 
 // Get all addresses for a user
-router.get("/",  authUser, async (req, res) => {
+router.get("/", authUser, async (req, res) => {
   const user_id = req.user.id;
 
   try {
     const rows = await pool.query(
       `SELECT 
-      id, 
-      street, 
-      city, 
-      state, 
-      zip, 
-      country, 
-      type,
-      is_default AS isDefault
+      type,first_name As firstName,last_name AS lastName ,company,address,city,state ,zip_code,country,phone, is_default AS "isDefault"
       FROM addresses WHERE user_id =$1`,
       [user_id]
     );
@@ -109,7 +123,7 @@ router.get("/",  authUser, async (req, res) => {
 });
 
 // Update an address
-router.put("/:id",  authUser, async (req, res) => {
+router.put("/:id", authUser, async (req, res) => {
   const user_id = req.user.id;
   const address_id = req.params.id;
   const { street, city, state, zip, country, type, isDefault } = req.body;
