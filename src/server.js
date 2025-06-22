@@ -35,7 +35,7 @@ app.use(
       "https://beautifyinterior.com",
       "https://www.beautifyinterior.com",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
     exposedHeaders: ["set-cookie"], // for http cookie on prod

@@ -9,6 +9,7 @@ import {
   getProducts,
   getProductById,
   getSimilarProducts,
+  updateProduct,
 } from "../controllers/productController.js";
 import authAdmin from "../middleware/authAdmin.js";
 
@@ -24,6 +25,7 @@ route.post(
 
 route.get("/products", getProducts);
 route.get("/products/:id", getProductById);
+route.patch("/products/:id", updateProduct);
 
 // New route for similar products
 route.get("/products/:id/similar", getSimilarProducts);
