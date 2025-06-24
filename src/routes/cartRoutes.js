@@ -10,12 +10,12 @@ import {
 
 const router = Router();
 
-router.post("/cart", authUser, addToCart);
+router.post("/", authUser, addToCart);
 // Get cart
-router.get("/cart", authUser, getCartByUser);
+router.get("/", authUser, getCartByUser);
 // Update quantity
-router.put("/cart/update", authUser, updateCartItem);
+router.put("/update/:id", authUser, updateCartItem);
 // Remove item
-router.delete("/cart/remove", authUser, removeFromCart);
+router.delete("/remove/:id", authUser, removeFromCart);
 
 export default router;

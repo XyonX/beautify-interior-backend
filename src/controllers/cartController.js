@@ -70,7 +70,31 @@ export const addToCart = async (req, res) => {
     }
 
     console.log("[AddToCart] Operation successful. Cart item:", result.rows[0]);
-    res.json(result.rows[0]);
+    // Retrieve updated cart
+    const query = `
+      SELECT
+        cart_items.id AS cart_item_id,
+        cart_items.product_id,
+        cart_items.quantity,
+        products.name,
+        products.price,
+        (SELECT url 
+          FROM product_images 
+          WHERE product_id = products.id 
+          AND is_main = TRUE 
+          ORDER BY sort_order ASC 
+          LIMIT 1) AS image_url
+      FROM cart_items
+      JOIN products ON cart_items.product_id = products.id
+      WHERE cart_items.user_id = $1;
+    `;
+
+    const { rows } = await pool.query(query, [user_id]);
+    console.log(
+      `[GetCart] Retrieved ${rows.length} items for user: ${user_id}`
+    );
+
+    res.status(200).json(rows);
   } catch (error) {
     console.error("[AddToCart] Server error:", error);
     res.status(500).json({ error: "Server error" });
@@ -93,13 +117,19 @@ export const getCartByUser = async (req, res) => {
         cart_items.product_id,
         cart_items.quantity,
         products.name,
-        products.price
+        products.price,
+        (SELECT url 
+         FROM product_images 
+         WHERE product_id = products.id 
+         AND is_main = TRUE 
+         ORDER BY sort_order ASC 
+         LIMIT 1) AS image_url
       FROM cart_items
       JOIN products ON cart_items.product_id = products.id
       WHERE cart_items.user_id = $1;
     `;
-    const { rows } = await pool.query(query, [userId]);
 
+    const { rows } = await pool.query(query, [userId]);
     console.log(`[GetCart] Retrieved ${rows.length} items for user: ${userId}`);
     res.status(200).json(rows);
   } catch (error) {
@@ -109,63 +139,121 @@ export const getCartByUser = async (req, res) => {
 };
 
 export const updateCartItem = async (req, res) => {
+  console.log("[updateCartItem] Request received:", {
+    params: req.params,
+    body: req.body,
+    user: req.user?.id || "no user",
+  });
+
   try {
     // Check if user is authenticated
     if (!req.user) {
+      console.warn("[updateCartItem] Unauthenticated request");
       return res.status(401).json({ error: "Authentication required" });
     }
+
     const userId = req.user.id;
     const cartItemId = req.params.id;
     const { quantity } = req.body;
 
+    console.log(
+      `[updateCartItem] Processing update for user ${userId}, item ${cartItemId}, quantity ${quantity}`
+    );
+
     // Validate quantity
     if (!Number.isInteger(quantity) || quantity < 1) {
+      console.warn("[updateCartItem] Invalid quantity:", quantity);
       return res
         .status(400)
         .json({ error: "Quantity must be a positive integer" });
     }
 
     // Check if cart item exists for the user
+    console.log("[updateCartItem] Checking cart item existence...");
     const cartItemRes = await pool.query(
       "SELECT * FROM cart_items WHERE id = $1 AND user_id = $2",
       [cartItemId, userId]
     );
+
     if (cartItemRes.rows.length === 0) {
+      console.warn(
+        `[updateCartItem] Cart item not found (id: ${cartItemId}, user: ${userId})`
+      );
       return res.status(404).json({ error: "Cart item not found" });
     }
+
     const cartItem = cartItemRes.rows[0];
+    console.log("[updateCartItem] Found cart item:", {
+      productId: cartItem.product_id,
+      currentQuantity: cartItem.quantity,
+    });
 
     // Check stock availability
-    let stock;
+    console.log("[updateCartItem] Checking product stock...");
     const productRes = await pool.query(
       "SELECT quantity FROM products WHERE id = $1",
       [cartItem.product_id]
     );
+
     if (productRes.rows.length === 0) {
+      console.warn(
+        `[updateCartItem] Product not found (id: ${cartItem.product_id})`
+      );
       return res.status(404).json({ error: "Product not found" });
     }
-    stock = productRes.rows[0].quantity;
+
+    const stock = productRes.rows[0].quantity;
+    console.log("[updateCartItem] Current stock:", stock);
 
     if (quantity > stock) {
+      console.warn("[updateCartItem] Insufficient stock:", {
+        requested: quantity,
+        available: stock,
+      });
       return res.status(400).json({ error: "Insufficient stock" });
     }
 
     // Update cart item quantity
+    console.log("[updateCartItem] Updating cart item quantity...");
     await pool.query("UPDATE cart_items SET quantity = $1 WHERE id = $2", [
       quantity,
       cartItemId,
     ]);
+    console.log("[updateCartItem] Quantity updated successfully");
 
     // Retrieve updated cart
-    const cartRes = await pool.query(
-      "SELECT * FROM cart_items WHERE user_id = $1",
-      [userId]
-    );
-    const cartItems = cartRes.rows;
+    console.log("[updateCartItem] Retrieving updated cart...");
+    const query = `
+      SELECT
+        cart_items.id AS cart_item_id,
+        cart_items.product_id,
+        cart_items.quantity,
+        products.name,
+        products.price,
+        (SELECT url 
+         FROM product_images 
+         WHERE product_id = products.id 
+         AND is_main = TRUE 
+         ORDER BY sort_order ASC 
+         LIMIT 1) AS image_url
+      FROM cart_items
+      JOIN products ON cart_items.product_id = products.id
+      WHERE cart_items.user_id = $1;
+    `;
 
-    res.status(200).json({ message: "Cart item updated", cart: cartItems });
+    const { rows } = await pool.query(query, [userId]);
+    console.log(
+      `[updateCartItem] Retrieved ${rows.length} items for user: ${userId}`
+    );
+    console.debug("[updateCartItem] Cart contents:", rows);
+
+    res.status(200).json(rows);
   } catch (error) {
-    console.error("Error updating cart item:", error);
+    console.error("[updateCartItem] Error:", {
+      message: error.message,
+      stack: error.stack,
+      fullError: error,
+    });
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -179,6 +267,12 @@ export const removeFromCart = async (req, res) => {
     const userId = req.user.id;
     const cartItemId = req.params.id;
 
+    console.log("Remove item req received in backend for user Id : ", userId);
+    console.log(
+      "Remove item req received in backend for cart item id : ",
+      cartItemId
+    );
+
     // Delete cart item
     const result = await pool.query(
       "DELETE FROM cart_items WHERE id = $1 AND user_id = $2",
@@ -189,13 +283,28 @@ export const removeFromCart = async (req, res) => {
     }
 
     // Retrieve updated cart
-    const cartRes = await pool.query(
-      "SELECT * FROM cart_items WHERE user_id = $1",
-      [userId]
-    );
-    const cartItems = cartRes.rows;
+    const query = `
+      SELECT
+        cart_items.id AS cart_item_id,
+        cart_items.product_id,
+        cart_items.quantity,
+        products.name,
+        products.price,
+        (SELECT url 
+         FROM product_images 
+         WHERE product_id = products.id 
+         AND is_main = TRUE 
+         ORDER BY sort_order ASC 
+         LIMIT 1) AS image_url
+      FROM cart_items
+      JOIN products ON cart_items.product_id = products.id
+      WHERE cart_items.user_id = $1;
+    `;
 
-    res.status(200).json({ message: "Cart item removed", cart: cartItems });
+    const { rows } = await pool.query(query, [userId]);
+    console.log(`[GetCart] Retrieved ${rows.length} items for user: ${userId}`);
+
+    res.status(200).json(rows);
   } catch (error) {
     console.error("Error removing cart item:", error);
     res.status(500).json({ error: "Internal server error" });
