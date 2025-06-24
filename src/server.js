@@ -10,6 +10,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import shipmentRoutes from "./routes/shipmentRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
 
 const app = express();
 app.use(express.json());
@@ -47,12 +48,13 @@ app.use("/auth", authRoutes);
 
 app.use("/api", categoryRoute);
 app.use("/api", productRoute);
+app.use("/api", cartRoutes);
 
-// app.use("/api", cartRoutes);
 // app.use("/api", orderRoutes);
 // app.use("/api", paymentRoutes);
 // app.use("/api", shipmentRoutes);
 app.use("/api/addresses", addressRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 const PORT = 3001 || process.env.PORT;
 app.listen(3001, () => {
