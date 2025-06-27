@@ -517,7 +517,8 @@ export const createPendingOrder = async (req, res) => {
     );
     console.log("Subtotal:", subtotal);
 
-    const taxAmount = subtotal * 0.18; // Example: 18% tax
+    // const taxAmount = subtotal * 0.18; // Example: 18% tax
+    const taxAmount = 0; // Example: 18% tax
     console.log("Tax amount:", taxAmount);
 
     const shippingAmount =
@@ -668,7 +669,7 @@ export const createPendingOrder = async (req, res) => {
 
     // Create Razorpay order
     const razorpayOrder = await razorpay.orders.create({
-      amount: total * 100, // Convert to paise
+      amount: Math.round(total * 100),
       currency: "INR",
       receipt: orderNumber,
       payment_capture: 1, // Auto-capture payment
