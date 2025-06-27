@@ -9,6 +9,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import "dotenv/config";
 import AWS from "aws-sdk";
 
@@ -46,6 +47,7 @@ app.use("/api/addresses", addressRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/users", userRoutes);
 
 const PORT = 3001 || process.env.PORT;
 app.listen(3001, () => {
