@@ -776,3 +776,61 @@ export const verifyPayment = async (req, res) => {
     res.status(500).json({ message: "Failed to verify payment" });
   }
 };
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        id, 
+        order_number, 
+        user_id, 
+        email, 
+        status, 
+        payment_status, 
+        fulfillment_status, 
+        subtotal, 
+        tax_amount, 
+        shipping_amount, 
+        discount_amount, 
+        total, 
+        currency, 
+        shipping_first_name, 
+        shipping_last_name, 
+        shipping_company, 
+        shipping_address, 
+        shipping_address2, 
+        shipping_city, 
+        shipping_state, 
+        shipping_zip_code, 
+        shipping_country, 
+        shipping_phone, 
+        billing_first_name, 
+        billing_last_name, 
+        billing_company, 
+        billing_address, 
+        billing_address2, 
+        billing_city, 
+        billing_state, 
+        billing_zip_code, 
+        billing_country, 
+        billing_phone, 
+        shipping_method_id, 
+        payment_method, 
+        notes, 
+        tags, 
+        tracking_number, 
+        tracking_url, 
+        estimated_delivery, 
+        actual_delivery, 
+        source, 
+        created_at, 
+        updated_at 
+      FROM orders
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
