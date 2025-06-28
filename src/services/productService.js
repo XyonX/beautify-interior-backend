@@ -20,7 +20,22 @@ const generateUniqueSlug = async (productData) => {
 
   // Add key attributes (size/color for better uniqueness)
   const attributeSlug = [];
-  if (productData.attributes) {
+  if (productData.attributes && Array.isArray(productData.attributes)) {
+    // Handle new attributes format (array of objects)
+    for (const attr of productData.attributes) {
+      if (
+        attr.name &&
+        attr.value &&
+        ["color", "size", "material"].includes(attr.name.toLowerCase())
+      ) {
+        attributeSlug.push(slugify(attr.value, { lower: true, strict: true }));
+      }
+    }
+  } else if (
+    productData.attributes &&
+    typeof productData.attributes === "object"
+  ) {
+    // Handle old attributes format (key-value object) for backward compatibility
     for (const [key, value] of Object.entries(productData.attributes)) {
       if (["color", "size", "material"].includes(key)) {
         attributeSlug.push(slugify(value, { lower: true, strict: true }));
@@ -88,6 +103,7 @@ export default {
       is_new: productData.is_new || false,
       on_sale: productData.on_sale || false,
     };
+    console.log("final prouct data for to insert : ", product);
 
     return await Product.insertProduct(product);
   },

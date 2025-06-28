@@ -4,31 +4,92 @@ import Product from "../models/productModel.js";
 import pool from "../../config/database.js";
 import { Op } from "sequelize";
 
+// export const createProduct = async (req, res) => {
+//   const requiredFields = [
+//     "name",
+//     "description",
+//     "sku",
+//     "price",
+//     "categoryId",
+//     "thumbnail",
+//   ];
+//   console.log("Received data in backend: ", req.body);
+
+//   const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+//   if (missingFields.length > 0) {
+//     return res.status(400).json({
+//       error: `Missing required fields: ${missingFields.join(", ")}`,
+//     });
+//   }
+
+//   try {
+//     const newProduct = await productService.createProduct(req.body);
+//     await imageService.createImages(newProduct, req.productImages);
+
+//     res.status(201).json(newProduct);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const createProduct = async (req, res) => {
-  const requiredFields = [
-    "name",
-    "description",
-    "sku",
-    "price",
-    "categoryId",
-    "thumbnail",
-  ];
   console.log("Received data in backend: ", req.body);
-
-  const missingFields = requiredFields.filter((field) => !req.body[field]);
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      error: `Missing required fields: ${missingFields.join(", ")}`,
-    });
-  }
+  console.log("Files received: ", req.files);
+  console.log("Product images: ", req.productImages);
 
   try {
-    const newProduct = await productService.createProduct(req.body);
+    // Parse the product data from JSON string
+    let productData;
+    if (req.body.productData) {
+      try {
+        productData = JSON.parse(req.body.productData);
+        console.log("Parsed product data:", productData);
+      } catch (error) {
+        console.error("Error parsing productData:", error);
+        return res.status(400).json({ error: "Invalid product data format" });
+      }
+    } else {
+      // Fallback to direct body parsing for backward compatibility
+      productData = req.body;
+    }
+
+    const requiredFields = [
+      "name",
+      "description",
+      "sku",
+      "price",
+      "categoryId",
+    ];
+
+    const missingFields = requiredFields.filter((field) => !productData[field]);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Missing required fields: ${missingFields.join(", ")}`,
+      });
+    }
+
+    // Check if images were uploaded (handled by middleware)
+    if (!req.body.thumbnail) {
+      return res.status(400).json({ error: "Thumbnail is required" });
+    }
+
+    if (!req.productImages || req.productImages.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one detailed image is required" });
+    }
+
+    // Create the product with the parsed data
+    const newProduct = await productService.createProduct(productData);
+
+    // Handle image uploads (already processed by middleware)
     await imageService.createImages(newProduct, req.productImages);
 
     res.status(201).json(newProduct);
   } catch (error) {
+    console.error("Error creating product:", error);
     res.status(500).json({ error: error.message });
   }
 };
