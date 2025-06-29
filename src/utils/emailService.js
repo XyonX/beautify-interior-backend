@@ -1,37 +1,78 @@
-// src/services/emailService.js
-import AWS from "aws-sdk";
+import nodemailer from "nodemailer";
+import handlebars from "handlebars";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+// index.js (or server.js, app.js, etc.)
+import dotenv from "dotenv";
+dotenv.config();
 
-// SES is already configured via AWS.config.update(...) in your main file
-const ses = new AWS.SES({ apiVersion: "2010-12-01" });
+// Add this at the top of your file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-/**
- * Send a simple transactional email via SES.
- * @param {string} to      – recipient email address
- * @param {string} subject – email subject
- * @param {string} body    – plain-text body (can be HTML if wrapped properly)
- */
-export async function sendEmail({ to, subject, body }) {
-  const params = {
-    Source: `noreply@${process.env.MAIL_FROM_DOMAIN}`, // e.g. 'noreply@beautifyinterior.com'
-    Destination: {
-      ToAddresses: [to],
-    },
-    Message: {
-      Subject: { Data: subject },
-      Body: {
-        Text: { Data: body },
-        /* If you want HTML:
-        Html: { Data: '<h1>…</h1>' }
-        */
-      },
-    },
-  };
+// // Create the Nodemailer transporter once for reuse
+// const transporter = nodemailer.createTransport({
+//   host: process.env.EMAIL_HOST,
+//   port: process.env.EMAIL_PORT,
+//   secure: true, // Must be true for port 465
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASSWORD,
+//   },
+// });
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: true, // Must be true for port 465
+  auth: {
+    user: process.env.EMAIL_USER, // Must be full email address
+    pass: process.env.EMAIL_PASSWORD, // Use the email account password
+  },
+  tls: {
+    rejectUnauthorized: false, // Add this for Hostinger
+  },
+});
 
+// Function to render a template with data
+const renderTemplate = (templateName, data) => {
+  const templatePath = path.join(
+    __dirname,
+    `../templates/emails/${templateName}.hbs`
+  );
+  const templateSource = fs.readFileSync(templatePath, "utf8");
+  const template = handlebars.compile(templateSource);
+  return template(data);
+};
+
+// Generic function to send any type of email
+export const sendEmail = async (to, subject, templateName, data, from) => {
   try {
-    const result = await ses.sendEmail(params).promise();
-    return result; // you can inspect MessageId, etc.
-  } catch (err) {
-    console.error("SES sendEmail error", err);
-    throw err;
+    const html = renderTemplate(templateName, data);
+    const mailOptions = {
+      from: from, // Dynamic "From" address
+      to: to,
+      subject: subject,
+      html: html,
+    };
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${to} from ${from}`);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw new Error("Email sending failed");
   }
-}
+};
+
+export const sendVerificationEmail = async (
+  email,
+  userName,
+  verificationToken
+) => {
+  const verificationLink = `${process.env.BASE_URL}/auth/verify-email?token=${verificationToken}`;
+  const from = `"Beautify Interior" <noreply@beautifyinterior.com>`;
+  const data = { userName, verificationLink };
+  await sendEmail(email, "Email Verification", "verification", data, from);
+};
+
+export default sendVerificationEmail;

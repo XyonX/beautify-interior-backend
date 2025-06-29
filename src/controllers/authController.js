@@ -5,45 +5,56 @@ import dotenv from "dotenv";
 import * as crypto from "crypto";
 import jwt from "jsonwebtoken";
 
-import sendVerificationEmail from "../utils/email.js";
+import { sendVerificationEmail } from "../utils/emailService.js";
 
 dotenv.config();
 
 export const verifyEmail = async (req, res) => {
   const { token } = req.query;
+  console.log(`[Email Verification] Starting verification for token: ${token}`); // Log token received
 
   try {
-    // Find user by token
+    // Log database query attempt
+    console.log(`[Email Verification] Querying DB for token: ${token}`);
+
     const userResult = await pool.query(
       `SELECT * FROM users 
-         WHERE email_verification_token = $1 
-         AND email_verification_expires > NOW()`,
+       WHERE email_verification_token = $1 `,
       [token]
     );
 
+    // Handle invalid/expired tokens
     if (userResult.rows.length === 0) {
-      return res.status(400).json({
-        error: "Invalid or expired verification token",
-      });
+      console.warn(`[Email Verification] Invalid token: ${token}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/verify?status=invalid`
+      );
+    }
+    if (new Date() > new Date(userResult.rows[0].email_verification_expires)) {
+      console.warn(`[Email Verification] expired token: ${token}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/verify?status=expired`
+      );
     }
 
     const user = userResult.rows[0];
+    console.log(`[Email Verification] Found user: ${user.id} (${user.email})`);
 
     // Update verification status
+    console.log(`[Email Verification] Updating verification for: ${user.id}`);
     await pool.query(
       `UPDATE users 
-         SET is_email_verified = TRUE,
-             email_verification_token = NULL,
-             email_verification_expires = NULL
-         WHERE id = $1`,
+       SET is_email_verified = TRUE,
+           email_verification_token = NULL,
+           email_verification_expires = NULL
+       WHERE id = $1`,
       [user.id]
     );
 
-    res.status(200).json({
-      message: "Email verified successfully!",
-    });
+    console.log(`[Email Verification] Success for user: ${user.id}`);
+    res.redirect(`${process.env.FRONTEND_URL}/auth/verify?status=success`);
   } catch (error) {
-    console.error("Verification error:", error);
+    console.error(`[Email Verification] ERROR for token ${token}:`, error);
     res.status(500).json({
       error: "Internal server error",
     });
@@ -100,7 +111,7 @@ export const registerUser = async (req, res) => {
     ]);
 
     // Send verification email
-    await sendVerificationEmail(email, verificationToken);
+    await sendVerificationEmail(email, firstName, verificationToken);
 
     res.status(201).json({
       message: "User registered. Please check your email for verification.",
