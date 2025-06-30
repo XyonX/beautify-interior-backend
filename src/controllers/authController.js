@@ -272,3 +272,5 @@ export const logoutUser = async (req, res) => {
   res.clearCookie("authToken");
   res.json({ message: "Logout successful" });
 };
+
+export const resetPassword = async (req, res) => {};
