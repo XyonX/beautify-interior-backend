@@ -75,4 +75,14 @@ export const sendVerificationEmail = async (
   await sendEmail(email, "Email Verification", "verification", data, from);
 };
 
+// Example: Specific function for welcome email
+export const sendWelcomeEmail = async (email, userName) => {
+  const shopLink = `${process.env.FRONTEND_URL}`;
+  const data = { userName,shopLink };
+
+  const from = `"Beautify Interior" <noreply@beautifyinterior.com>`;
+  await sendEmail(email, "Welcome to Beautify Interior", "welcome", data, from);
+
+};
+
 export default sendVerificationEmail;

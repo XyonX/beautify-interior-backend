@@ -5,7 +5,10 @@ import dotenv from "dotenv";
 import * as crypto from "crypto";
 import jwt from "jsonwebtoken";
 
-import { sendVerificationEmail } from "../utils/emailService.js";
+import {
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from "../utils/emailService.js";
 
 dotenv.config();
 
@@ -50,8 +53,9 @@ export const verifyEmail = async (req, res) => {
        WHERE id = $1`,
       [user.id]
     );
-
+    await sendWelcomeEmail(user.email, user.first_name);
     console.log(`[Email Verification] Success for user: ${user.id}`);
+
     res.redirect(`${process.env.FRONTEND_URL}/auth/verify?status=success`);
   } catch (error) {
     console.error(`[Email Verification] ERROR for token ${token}:`, error);
