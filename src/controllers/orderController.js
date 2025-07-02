@@ -92,13 +92,35 @@ export const getOrderById = async (req, res) => {
 
 // Helper function to format a single order
 const formatOrder = (order) => {
+  // const base = omitAddressFields(order);
+  // const totals = {
+  //   subtotal: Math.round(order.subtotal * 100),
+  //   tax: Math.round(order.tax_amount * 100),
+  //   shipping: Math.round(order.shipping_amount * 100),
+  //   discount: Math.round(order.discount_amount * 100),
+  //   total: Math.round(order.total * 100),
+  // };
+  // const shipping_address = formatAddress(order, "shipping");
+  // const billing_address = formatAddress(order, "billing");
+  // const items = order.items;
+
+  // const response = {
+  //   ...base,
+  //   totals,
+  //   shipping_address,
+  //   billing_address,
+  //   items,
+  // };
+
+  // return removeNulls(response);
+
   const base = omitAddressFields(order);
   const totals = {
-    subtotal: Math.round(order.subtotal * 100),
-    tax: Math.round(order.tax_amount * 100),
-    shipping: Math.round(order.shipping_amount * 100),
-    discount: Math.round(order.discount_amount * 100),
-    total: Math.round(order.total * 100),
+    subtotal: Math.round(order.subtotal),
+    tax: Math.round(order.tax_amount),
+    shipping: Math.round(order.shipping_amount),
+    discount: Math.round(order.discount_amount),
+    total: Math.round(order.total),
   };
   const shipping_address = formatAddress(order, "shipping");
   const billing_address = formatAddress(order, "billing");
@@ -215,6 +237,8 @@ export const getOrdersByUser = async (req, res) => {
 
     const formattedOrders = result.rows.map(formatOrder);
 
+    console.log("formatted order: ", formattedOrders);
+
     return res.status(200).json(formattedOrders);
   } catch (error) {
     return res.status(500).json({
@@ -285,7 +309,8 @@ export const createOrder = async (req, res) => {
     );
     console.log("Subtotal:", subtotal);
 
-    const taxAmount = subtotal * 0.18; // Example: 18% tax
+    // const taxAmount = subtotal * 0.18; // Example: 18% tax
+    const taxAmount = 0; // Example: 18% tax
     console.log("Tax amount:", taxAmount);
 
     const shippingAmount =
