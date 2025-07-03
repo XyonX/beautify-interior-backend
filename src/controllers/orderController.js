@@ -214,8 +214,8 @@ export const getOrdersByUser = async (req, res) => {
                 'id', oi.id,
                 'product_id', oi.product_id,
                 'quantity', oi.quantity,
-                'price', ROUND(oi.price * 100)::integer,
-                'total', ROUND(oi.total * 100)::integer,
+                'price', oi.price,
+                'total', oi.total,
                 'name', p.name,
                 'sku', p.sku,
                 'image', pi.url
