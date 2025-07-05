@@ -54,3 +54,4 @@ coverage/
 
 /config/flyway.conf
 gen.js
+cleanup_pending_orders.js
