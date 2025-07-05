@@ -78,11 +78,54 @@ export const sendVerificationEmail = async (
 // Example: Specific function for welcome email
 export const sendWelcomeEmail = async (email, userName) => {
   const shopLink = `${process.env.FRONTEND_URL}`;
-  const data = { userName,shopLink };
+  const data = { userName, shopLink };
 
   const from = `"Beautify Interior" <noreply@beautifyinterior.com>`;
   await sendEmail(email, "Welcome to Beautify Interior", "welcome", data, from);
+};
 
+export const sendOrderConfirmationEmail = async (email, dataArg) => {
+  const {
+    userName,
+    orderNumber,
+    orderDate,
+    orderItems,
+    subtotal,
+    shipping,
+    total,
+    addressName,
+    addressStreet,
+    addressCity,
+    addressState,
+    addressZip,
+    estimatedDelivery,
+  } = dataArg;
+
+  const data = {
+    userName,
+    orderNumber,
+    orderDate,
+    orderItems,
+    subtotal,
+    shipping,
+    total,
+    addressName,
+    addressStreet,
+    addressCity,
+    addressState,
+    addressZip,
+    estimatedDelivery,
+  };
+
+  const from = `"Beautify Interior" <noreply@beautifyinterior.com>`;
+
+  await sendEmail(
+    email,
+    "Your Beautify Order Has Been Placed!",
+    "confirmation",
+    data,
+    from
+  );
 };
 
 export default sendVerificationEmail;

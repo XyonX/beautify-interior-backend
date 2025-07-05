@@ -2,6 +2,9 @@ import pool from "../../config/database.js";
 import { v4 as uuidv4 } from "uuid";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { sendOrderConfirmationEmail } from "../utils/emailService.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -248,6 +251,263 @@ export const getOrdersByUser = async (req, res) => {
   }
 };
 
+// export const createOrder = async (req, res) => {
+//   try {
+//     console.log("Starting createOrder process");
+//     console.log("Request body:", JSON.stringify(req.body, null, 2));
+//     console.log("User:", req.user);
+//     console.log("Session ID:", req.sessionID);
+
+//     const { shippingInfo, shippingMethod, addressId, couponCode } = req.body;
+//     const userId = req.user?.id;
+
+//     // Step 1: Retrieve cart items
+//     console.log("Step 1: Retrieving cart items");
+//     const cartQuery = `
+//         SELECT ci.product_id, ci.variant_id, ci.quantity, p.price
+//         FROM cart_items ci
+//         JOIN products p ON ci.product_id = p.id
+//         WHERE ci.user_id = $1 OR ci.session_id = $2
+//       `;
+//     console.log("Cart query:", cartQuery);
+//     console.log("Query params:", [userId, req.sessionID]);
+
+//     const cartResult = await pool.query(cartQuery, [userId, req.sessionID]);
+//     const cartItems = cartResult.rows;
+//     console.log("Cart items retrieved:", cartItems);
+
+//     if (!cartItems.length) {
+//       console.log("Cart is empty");
+//       return res.status(400).json({ message: "Cart is empty" });
+//     }
+
+//     // Step 2: Validate stock availability
+//     console.log("Step 2: Validating stock availability");
+//     for (const item of cartItems) {
+//       console.log(
+//         `Checking stock for product ${item.product_id}, variant ${item.variant_id}`
+//       );
+//       const product = await pool.query(
+//         "SELECT quantity FROM products WHERE id = $1",
+//         [item.product_id]
+//       );
+//       console.log(
+//         `Product ${item.product_id} stock:`,
+//         product.rows[0].quantity
+//       );
+
+//       if (product.rows[0].quantity < item.quantity) {
+//         console.log(`Insufficient stock for product ${item.product_id}`);
+//         return res.status(400).json({
+//           message: `Insufficient stock for product ${item.product_id}`,
+//         });
+//       }
+//     }
+
+//     // Step 3: Calculate order totals
+//     console.log("Step 3: Calculating order totals");
+//     const subtotal = cartItems.reduce(
+//       (sum, item) => sum + item.price * item.quantity,
+//       0
+//     );
+//     console.log("Subtotal:", subtotal);
+
+//     // const taxAmount = subtotal * 0.18; // Example: 18% tax
+//     const taxAmount = 0; // Example: 18% tax
+//     console.log("Tax amount:", taxAmount);
+
+//     const shippingAmount =
+//       shippingMethod === "standard"
+//         ? subtotal > 500
+//           ? 0
+//           : 100
+//         : shippingMethod === "express"
+//         ? 199
+//         : 299;
+//     console.log(
+//       "Shipping method:",
+//       shippingMethod,
+//       "Shipping amount:",
+//       shippingAmount
+//     );
+
+//     let discountAmount = 0;
+
+//     // Handle coupon if provided
+//     if (couponCode) {
+//       console.log("Processing coupon code:", couponCode);
+//       const couponQuery = `
+//           SELECT value, type FROM coupons
+//           WHERE code = $1 AND is_active = true AND (expires_at IS NULL OR expires_at > NOW())
+//         `;
+//       const coupon = await pool.query(couponQuery, [couponCode]);
+//       console.log("Coupon query result:", coupon.rows);
+
+//       if (coupon.rows.length) {
+//         const { value, type } = coupon.rows[0];
+//         discountAmount =
+//           type === "percentage" ? (subtotal * value) / 100 : value;
+//         console.log("Discount applied:", discountAmount, "Type:", type);
+//       }
+//     }
+
+//     const total = subtotal + taxAmount + shippingAmount - discountAmount;
+//     console.log("Final total:", total);
+
+//     // Step 3.2: Fetch address if addressId is provided (only for logged-in users)
+//     console.log("Step 3.2: Processing shipping info");
+//     let finalShippingInfo = shippingInfo || {};
+//     console.log("Initial shipping info:", finalShippingInfo);
+
+//     if (userId && addressId) {
+//       console.log("Fetching address from DB with addressId:", addressId);
+//       const addressQuery = `
+//         SELECT first_name, last_name, address, zip_code, city, state, country, phone
+//         FROM addresses
+//         WHERE id = $1 AND user_id = $2
+//       `;
+//       const addressResult = await pool.query(addressQuery, [addressId, userId]);
+//       const address = addressResult.rows[0];
+//       console.log("Address from DB:", address);
+
+//       if (address) {
+//         finalShippingInfo = {
+//           firstName: address.first_name,
+//           lastName: address.last_name,
+//           address: address.address,
+//           zipCode: address.zip_code,
+//           city: address.city,
+//           state: address.state,
+//           country: address.country,
+//           phone: address.phone,
+//         };
+//         console.log("Updated shipping info from address:", finalShippingInfo);
+//       }
+//     }
+
+//     // Step 4: Create order record
+//     console.log("Step 4: Creating order record");
+//     const orderQuery = `
+//       INSERT INTO orders (
+//         id, order_number, user_id, email, status, payment_status, fulfillment_status,
+//         subtotal, tax_amount, shipping_amount, discount_amount, total, currency,
+//         shipping_first_name, shipping_last_name, shipping_address, shipping_city,
+//         shipping_state, shipping_zip_code, shipping_country, shipping_phone,
+//         payment_method, source
+//       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,$23)
+//       RETURNING id
+//     `;
+//     const orderId = uuidv4();
+//     const orderNumber = `ORD-${Date.now()}-${Math.random()
+//       .toString(36)
+//       .substr(2, 5)}`; // Improved uniqueness
+//     console.log("Generated order ID:", orderId);
+//     console.log("Generated order number:", orderNumber);
+
+//     const orderValues = [
+//       orderId,
+//       orderNumber,
+//       userId,
+//       req.user?.email || finalShippingInfo.email || "guest@example.com",
+//       "confirmed",
+//       "pending",
+//       "unfulfilled",
+//       subtotal,
+//       taxAmount,
+//       shippingAmount,
+//       discountAmount,
+//       total,
+//       "INR",
+//       finalShippingInfo.firstName,
+//       finalShippingInfo.lastName,
+//       finalShippingInfo.address,
+//       finalShippingInfo.city,
+//       finalShippingInfo.state,
+//       finalShippingInfo.zipCode,
+//       finalShippingInfo.country,
+//       finalShippingInfo.phone,
+//       "cod",
+//       "web",
+//     ];
+//     console.log("Order values:", orderValues);
+
+//     const orderResult = await pool.query(orderQuery, orderValues);
+//     console.log("Order created successfully in DB:", orderResult.rows[0]);
+
+//     //TODO populat this arry for each items and each object in the array shoudl cotain name ,quantity ,price and image
+//     const orderItems = [];
+//     // Step 5: Create order_items records
+//     console.log("Step 5: Creating order items");
+//     for (const item of cartItems) {
+//       console.log("Processing cart item:", item);
+//       const itemQuery = `
+//         INSERT INTO order_items (id, order_id, product_id, variant_id, quantity, price, total)
+//         VALUES ($1, $2, $3, $4, $5, $6, $7)
+//       `;
+//       const itemValues = [
+//         uuidv4(),
+//         orderId,
+//         item.product_id,
+//         item.variant_id,
+//         item.quantity,
+//         item.price,
+//         item.price * item.quantity,
+//       ];
+//       console.log("Order item values:", itemValues);
+
+//       const itemResult = await pool.query(itemQuery, itemValues);
+
+//       //fetch the product for the name  ,fetch the image from the product id for hte product and
+//       console.log("Order item created successfully");
+//     }
+
+//     // Step 6: Clear the cart
+//     console.log("Step 6: Clearing cart");
+//     await pool.query(
+//       "DELETE FROM cart_items WHERE user_id = $1 OR session_id = $2",
+//       [userId, req.sessionID]
+//     );
+//     console.log("Cart cleared successfully");
+//     console.log("Order creation successful. Order ID:", orderId);
+
+//     //name ,quantity,price and image
+
+//     //step 6.5 Send confirmation email
+//     const estimatedDeliveryDate = new Date();
+//     estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
+//     sendOrderConfirmationEmail(req.user?.email, {
+//       orderNumber: orderNumber,
+//       orderDate: orderResult.rows[0].created_at,
+//       orderItems: orderItems,
+//       subtotal: subtotal,
+//       shipping: shippingAmount,
+//       total: total,
+//       addressName: finalShippingInfo.firstName,
+//       addressStreet: finalShippingInfo.address,
+//       addressCity: finalShippingInfo.city,
+//       addressState: finalShippingInfo.state,
+//       addressZip: finalShippingInfo.zipCode,
+//       estimatedDeliver: estimatedDeliveryDate,
+//     });
+
+//     // Step 7: Respond with order details
+//     console.log("Step 7: Sending response");
+//     res.status(201).json({
+//       message: "Order created successfully",
+//       orderId,
+//       orderNumber,
+//       total,
+//     });
+//   } catch (error) {
+//     console.error("Error in createOrder:", error);
+//     console.error("Error stack:", error.stack);
+//     res.status(500).json({
+//       message: "Failed to create order",
+//       error: process.env.NODE_ENV === "development" ? error.message : undefined,
+//     });
+//   }
+// };
+
 export const createOrder = async (req, res) => {
   try {
     console.log("Starting createOrder process");
@@ -258,14 +518,14 @@ export const createOrder = async (req, res) => {
     const { shippingInfo, shippingMethod, addressId, couponCode } = req.body;
     const userId = req.user?.id;
 
-    // Step 1: Retrieve cart items
+    // Step 1: Retrieve cart items with product price
     console.log("Step 1: Retrieving cart items");
     const cartQuery = `
-        SELECT ci.product_id, ci.variant_id, ci.quantity, p.price
-        FROM cart_items ci
-        JOIN products p ON ci.product_id = p.id
-        WHERE ci.user_id = $1 OR ci.session_id = $2
-      `;
+      SELECT ci.product_id, ci.quantity, p.price
+      FROM cart_items ci
+      JOIN products p ON ci.product_id = p.id
+      WHERE ci.user_id = $1 OR ci.session_id = $2
+    `;
     console.log("Cart query:", cartQuery);
     console.log("Query params:", [userId, req.sessionID]);
 
@@ -278,12 +538,41 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
+    // Fetch additional data for order items
+    console.log("Fetching additional data for order items");
+    const productIds = cartItems.map((item) => item.product_id);
+
+    // Fetch product names and main images
+    const productsQuery = `
+      SELECT p.id, p.name, pi.url as main_image
+      FROM products p
+      LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_main = TRUE
+      WHERE p.id = ANY($1)
+    `;
+    const productsResult = await pool.query(productsQuery, [productIds]);
+    const productMap = productsResult.rows.reduce((map, p) => {
+      map[p.id] = {
+        name: p.name,
+        mainImage: p.main_image || "default-image-url",
+      };
+      return map;
+    }, {});
+
+    // Populate orderItems array for email
+    const orderItems = cartItems.map((item) => {
+      const product = productMap[item.product_id];
+      return {
+        name: product.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: `${process.env.CDN_URL}${product.mainImage}`,
+      };
+    });
+
     // Step 2: Validate stock availability
     console.log("Step 2: Validating stock availability");
     for (const item of cartItems) {
-      console.log(
-        `Checking stock for product ${item.product_id}, variant ${item.variant_id}`
-      );
+      console.log(`Checking stock for product ${item.product_id}`);
       const product = await pool.query(
         "SELECT quantity FROM products WHERE id = $1",
         [item.product_id]
@@ -309,7 +598,6 @@ export const createOrder = async (req, res) => {
     );
     console.log("Subtotal:", subtotal);
 
-    // const taxAmount = subtotal * 0.18; // Example: 18% tax
     const taxAmount = 0; // Example: 18% tax
     console.log("Tax amount:", taxAmount);
 
@@ -391,13 +679,13 @@ export const createOrder = async (req, res) => {
         shipping_first_name, shipping_last_name, shipping_address, shipping_city,
         shipping_state, shipping_zip_code, shipping_country, shipping_phone,
         payment_method, source
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,$23)
-      RETURNING id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+      RETURNING id, created_at
     `;
     const orderId = uuidv4();
     const orderNumber = `ORD-${Date.now()}-${Math.random()
       .toString(36)
-      .substr(2, 5)}`; // Improved uniqueness
+      .substr(2, 5)}`;
     console.log("Generated order ID:", orderId);
     console.log("Generated order number:", orderNumber);
 
@@ -431,19 +719,18 @@ export const createOrder = async (req, res) => {
     const orderResult = await pool.query(orderQuery, orderValues);
     console.log("Order created successfully in DB:", orderResult.rows[0]);
 
-    // Step 5: Create order_items records
+    // Step 5: Create order_items records (without variant_id)
     console.log("Step 5: Creating order items");
     for (const item of cartItems) {
       console.log("Processing cart item:", item);
       const itemQuery = `
-        INSERT INTO order_items (id, order_id, product_id, variant_id, quantity, price, total)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO order_items (id, order_id, product_id, quantity, price, total)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `;
       const itemValues = [
         uuidv4(),
         orderId,
         item.product_id,
-        item.variant_id,
         item.quantity,
         item.price,
         item.price * item.quantity,
@@ -462,6 +749,24 @@ export const createOrder = async (req, res) => {
     );
     console.log("Cart cleared successfully");
     console.log("Order creation successful. Order ID:", orderId);
+
+    // Step 6.5: Send confirmation email
+    const estimatedDeliveryDate = new Date();
+    estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 10);
+    sendOrderConfirmationEmail(req.user?.email, {
+      orderNumber: orderNumber,
+      orderDate: orderResult.rows[0].created_at,
+      orderItems: orderItems,
+      subtotal: subtotal,
+      shipping: shippingAmount,
+      total: total,
+      addressName: finalShippingInfo.firstName,
+      addressStreet: finalShippingInfo.address,
+      addressCity: finalShippingInfo.city,
+      addressState: finalShippingInfo.state,
+      addressZip: finalShippingInfo.zipCode,
+      estimatedDelivery: estimatedDeliveryDate,
+    });
 
     // Step 7: Respond with order details
     console.log("Step 7: Sending response");
