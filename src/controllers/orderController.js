@@ -1156,11 +1156,37 @@ export const getAllOrders = async (req, res) => {
         created_at, 
         updated_at 
       FROM orders
+      WHERE status != $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
     `;
-    const result = await pool.query(query);
-    res.json(result.rows);
+    const limit = parseInt(req.query.limit) || 20; // Default to 20 orders per page
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(query, ["cancelled", limit, offset]);
+
+    // Get total count of non-cancelled orders for pagination
+    const countResult = await pool.query(
+      `SELECT COUNT(*) AS total FROM orders WHERE status != $1`,
+      ["cancelled"]
+    );
+    const totalOrders = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    res.json({
+      orders: result.rows,
+      pagination: {
+        page,
+        limit,
+        totalOrders,
+        totalPages,
+      },
+    });
   } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error fetching orders:", error.message, error.stack);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch orders. Please try again later." });
   }
 };
