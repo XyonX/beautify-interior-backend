@@ -49,7 +49,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/users", userRoutes);
 
-const PORT = 3001 || process.env.PORT;
-app.listen(3001, () => {
+const PORT = 4001 || process.env.PORT;
+app.listen(4001, () => {
   console.log(`"Server started.. at http://localhost:${PORT}"`);
 });
