@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  beautify-backend:
+    image: beautify-backend
+    container_name: beautify-backend
+    env_file:
+      - .env
+    ports:
+      - "4001:4001"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
