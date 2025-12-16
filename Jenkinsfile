@@ -10,7 +10,6 @@ pipeline {
             }
         }
 
-
         stage('Prepare Env') {
             steps {
                 withCredentials([file(credentialsId: 'BEAUTIFY_BACKEND_ENV', variable: 'ENV_FILE')]) {
@@ -23,21 +22,17 @@ pipeline {
 
         stage('Build Image') {
             steps {
-                sh 'docker build -t beautify-backend .'
+                sh '''
+                docker build -t beautify-backend .
+                '''
             }
         }
 
-        stage('Run Container') {
+        stage('Deploy with Docker Compose') {
             steps {
                 sh '''
-                docker stop beautify-backend || true
-                docker rm beautify-backend || true
-
-                docker run -d \
-                  --name beautify-backend \
-                  --env-file .env \
-                  -p 4001:4001 \
-                  beautify-backend
+                docker compose down || true
+                docker compose up -d
                 '''
             }
         }
