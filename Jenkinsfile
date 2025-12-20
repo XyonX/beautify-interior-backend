@@ -59,9 +59,10 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/XyonX/beautify-interior-backend.git'
+                git branch: 'main',
+                    url: 'https://github.com/XyonX/beautify-interior-backend.git'
             }
         }
 
