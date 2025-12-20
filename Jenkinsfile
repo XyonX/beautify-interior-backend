@@ -80,7 +80,7 @@ pipeline {
                     file(credentialsId: 'BEAUTIFY_BACKEND_ENV', variable: 'ENV_FILE')
                 ]) {
                     sh '''
-                    docker compose --env-file $ENV_FILE up -d
+                    docker-compose --env-file $ENV_FILE up -d
                     '''
                 }
             }
