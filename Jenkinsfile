@@ -66,18 +66,6 @@ pipeline {
             }
         }
 
-        stage('Prepare Env') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'BEAUTIFY_BACKEND_ENV', variable: 'ENV_FILE')
-                ]) {
-                    sh '''
-                    cp $ENV_FILE .env
-                    '''
-                }
-            }
-        }
-
         stage('Build Image') {
             steps {
                 sh '''
@@ -88,10 +76,15 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh '''
-                docker compose up -d
-                '''
+                withCredentials([
+                    file(credentialsId: 'BEAUTIFY_BACKEND_ENV', variable: 'ENV_FILE')
+                ]) {
+                    sh '''
+                    docker compose --env-file $ENV_FILE up -d
+                    '''
+                }
             }
         }
+
     }
 }
